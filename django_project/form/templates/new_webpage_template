@@ -1,0 +1,4 @@
+{% extends "form/base.html" %}
+{%block content%}
+    #put body here
+{%endblock content%}

@@ -1,0 +1,12 @@
+{% extends "form/base.html" %}
+{%block content%}
+<p>----------------</p>
+{% for ticket in tickets %}
+<h2> {{ ticket.name }} </h2>
+<p> Age: {{ ticket.age }} </p>
+<p> Date: {{ ticket.date }} </p>
+<p> Problem: {{ ticket.problem }} </p>
+<p> Notes: {{ ticket.note }} </p>
+<p>----------------</p>
+{% endfor %}
+{%endblock content%}
