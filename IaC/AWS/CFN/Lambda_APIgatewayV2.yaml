@@ -1,0 +1,96 @@
+Description:  This script creates a Lambda function and Api gateway.
+Resources:
+  # This create the role for lambda function
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+
+  # Simple lambda function that says hello 
+  HandlerLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.7
+      Handler: index.my_handler
+      Code:
+        ZipFile: |
+          def my_handler(event, context):
+            message = 'Hello Lambda World!'
+            return message
+      Description: A friendly Lambda function
+      # gets role resource name
+      Role: !GetAtt LambdaRole.Arn
+
+  # crates api
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: ShaneDuke-api
+      ProtocolType: HTTP
+  # intagreats resources for api 
+  HttpApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      # getts the Lambda resource name 
+      IntegrationUri: !GetAtt HandlerLambdaFunction.Arn
+      PayloadFormatVersion: '2.0'
+  # allows routing from intigraded resources
+  HttpApiRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DependsOn: HttpApiIntegration
+    Properties:
+      # route key could also be things like live, dev, testing
+      RouteKey: $default
+      ApiId: !Ref HttpApi
+      Target:
+        !Join
+        - /
+        - - integrations
+          - !Ref HttpApiIntegration
+  # creates routekey for route
+  HttpApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      # this is the route key's name
+      StageName: $default
+      ApiId: !Ref HttpApi
+      # this setting defines if the api will auto deploy
+      AutoDeploy: true
+
+  # Allows API Gateway to call our Lambda function.
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt HandlerLambdaFunction.Arn
+      Principal: apigateway.amazonaws.com
+      # SourceArn invokes the function (it sets the trigger)
+      # get exact resource path for API Gateway
+      # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
+      SourceArn:
+        !Join
+        - ''
+        - - 'arn:'
+          - !Ref AWS::Partition
+          - ':execute-api:'
+          - !Ref AWS::Region
+          - ':'
+          - !Ref AWS::AccountId
+          - ':'
+          - !Ref HttpApi
+          - /*
+
+# General Resources
+# Template snippets - AWS CloudFormation (amazon.com) : https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/CHAP_TemplateQuickRef.html
+# Pseudo paramaeters - https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/pseudo-parameter-reference.html

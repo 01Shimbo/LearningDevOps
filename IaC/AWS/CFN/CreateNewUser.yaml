@@ -1,0 +1,35 @@
+# This was practice for using parameters for CFN
+Parameters:
+  IAMUserName:
+    Type: String
+    Description: The username of the AWS account
+  OneTimePassword:
+    Type: String
+    Description: The password of the AWS account(will only be used on first login).
+  IAMGroupName:
+    Type: String
+    Description: what group the account belongs to
+    AllowedValues:
+      - Developer
+      - Staging
+      - Production
+
+Resources:
+  NewIAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Ref IAMUserName
+      Groups: [!Ref IAMGroupName]
+      LoginProfile:
+        Password: !Ref OneTimePassword
+        PasswordResetRequired: true
+          
+  # AddUserToGroup:
+  #   Type: AWS::IAM::UserToGroupAddition
+  #   Properties: 
+  #     GroupName: Devloper
+  #     Users: 
+  #       - !Ref NewIAMUser
+# Resources
+
+# Metadata: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cloudformation-interface.html

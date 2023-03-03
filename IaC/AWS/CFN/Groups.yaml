@@ -1,0 +1,116 @@
+# creates 3 groups and some policies for them
+Resources:
+  DevGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: Developer
+
+  StageGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: Staging
+
+  ProductionGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: Production
+
+  BasicUserPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: BasicUserPolicy
+      Groups: [!Ref DevGroup, !Ref StageGroup, !Ref ProductionGroup]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - iam:GetLoginProfile
+              - iam:CreateLoginProfile
+              - iam:FinalizeSmsMfaRegistration
+              - iam:ListAccessKeys
+              - iam:RequestSmsMfaRegistration
+              - iam:ChangePassword
+              - iam:ListSigningCertificates
+              - iam:DeleteLoginProfile
+              - iam:ListSSHPublicKeys
+            Resource:
+              - !Join [
+                  "",
+                  [
+                    "arn:aws:iam::",
+                    !Ref "AWS::AccountId",
+                    ":user/${aws:username}",
+                  ],
+                ]
+          - Effect: Allow
+            Action:
+              - iam:ListUsers
+              - iam:ListAccountAliases
+              - iam:GetAccountPasswordPolicy
+              - iam:GetAccountSummary
+            Resource:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:*"
+
+  # Crate EC2 create policy for Devloper
+  Devpolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties: 
+      ManagedPolicyName: DevEC2CreatePolicy
+      Groups: [!Ref DevGroup]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - "ec2:Describe*"
+              - "ec2:GetConsole*"
+              - "ec2:Create*"
+              - "ec2:*instance*"
+            Resource: "*"
+            Effect: "Allow"
+          - Action:
+              - "ec2:RunInstances"
+              - "ec2:AttachVolume"
+              - "ec2:DetachVolume"
+            Resource:
+              - "arn:aws:ec2:::subnet/*"
+              - "arn:aws:ec2:::network-interface/*"
+              - "arn:aws:ec2:::instance/*"
+              - "arn:aws:ec2:::volume/*"
+              - "arn:aws:ec2:::image/ami-*"
+              - "arn:aws:ec2:::key-pair/*"
+              - "arn:aws:ec2:::security-group/*"
+            Effect: "Allow"
+  # Stage policies
+  StagePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: StagePolicy
+      Groups: [!Ref StageGroup]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - "s3:GetObject"
+              - "s3:GetObjectVersion"
+              - "s3:ListBucket"
+            Effect: "Allow"
+            Resource: "*"
+  # Production Policy
+  ProductionPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: ProductionPolicy
+      Groups: [!Ref ProductionGroup]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - "codepipeline:GetPipeline"
+              - "codepipeline:GetPipelineState"
+              - "codepipeline:GetPipelineExecution"
+              - "codepipeline:ListPipelineExecutions"
+              - "codepipeline:ListPipelines"
+              - "codepipeline:PutApprovalResult"
+            Effect: "Allow"
+            Resource: "*"
